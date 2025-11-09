@@ -1,15 +1,15 @@
 {
   "files": {
     "main.css": "/oyo-booking-demo/static/css/main.3b71cc2a.css",
-    "main.js": "/oyo-booking-demo/static/js/main.45c1dede.js",
+    "main.js": "/oyo-booking-demo/static/js/main.1fb6622d.js",
     "static/js/453.f23926f7.chunk.js": "/oyo-booking-demo/static/js/453.f23926f7.chunk.js",
     "index.html": "/oyo-booking-demo/index.html",
     "main.3b71cc2a.css.map": "/oyo-booking-demo/static/css/main.3b71cc2a.css.map",
-    "main.45c1dede.js.map": "/oyo-booking-demo/static/js/main.45c1dede.js.map",
+    "main.1fb6622d.js.map": "/oyo-booking-demo/static/js/main.1fb6622d.js.map",
     "453.f23926f7.chunk.js.map": "/oyo-booking-demo/static/js/453.f23926f7.chunk.js.map"
   },
   "entrypoints": [
     "static/css/main.3b71cc2a.css",
-    "static/js/main.45c1dede.js"
+    "static/js/main.1fb6622d.js"
   ]
 }
