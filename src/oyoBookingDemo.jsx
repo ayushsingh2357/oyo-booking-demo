@@ -2,6 +2,8 @@ import React, { useState } from "react";
 import { Calendar, MapPin, Users, Check, Loader2 } from "lucide-react";
 import "bootstrap/dist/css/bootstrap.min.css";
 
+const API_URL = "https://easykey.roomsvital.com/bookings/create-booking"; // <-- REPLACE with your real POST URL
+
 const OYOBookingDemo = () => {
   const [step, setStep] = useState("browse");
   const [loading, setLoading] = useState(false);
@@ -14,8 +16,10 @@ const OYOBookingDemo = () => {
     guests: "1",
   });
   const [bookingConfirmation, setBookingConfirmation] = useState(null);
+  const [error, setError] = useState(null);
 
   const hotel = {
+    id: "Hotel Sayonara", // <-- used in payload
     name: "Hotel Sayonara",
     location: "Connaught Place, New Delhi",
     price: 1499,
@@ -33,13 +37,14 @@ const OYOBookingDemo = () => {
 
   const handleBookNow = () => {
     setStep("booking");
+    setError(null);
   };
 
   const handleSubmitBooking = async () => {
+    // basic validation
     if (
       !bookingData.guestName ||
       !bookingData.phone ||
-      !bookingData.email ||
       !bookingData.checkIn ||
       !bookingData.checkOut
     ) {
@@ -48,28 +53,68 @@ const OYOBookingDemo = () => {
     }
 
     setLoading(true);
+    setError(null);
 
+    // construct payload according to sample you provided
     const apiPayload = {
-      booking_id: `OYO${Math.floor(10000 + Math.random() * 90000)}`,
-      guest_name: bookingData.guestName,
-      phone: bookingData.phone,
-      email: bookingData.email,
-      hotel_name: hotel.name,
-      hotel_location: hotel.location,
-      check_in_date: bookingData.checkIn,
-      check_out_date: bookingData.checkOut,
-      room_type: "Deluxe",
-      guests: bookingData.guests,
-      total_amount: hotel.price,
-      timestamp: new Date().toISOString(),
+      guestName: bookingData.guestName,
+      hotelId: hotel.id,
+      checkIn: new Date(bookingData.checkIn).toISOString(), // sample used ISO with time
+      checkOut: new Date(bookingData.checkOut).toISOString(),
+      numberOfGuests: Number(bookingData.guests),
+      numberOfRooms: 1, // default, change if you add rooms UI
+      phoneNumber: bookingData.phone,
+      // optional: include email if your API accepts it
+      email: bookingData.email || undefined,
     };
 
-    setTimeout(() => {
-      console.log("POST /api/v1/bookings", apiPayload);
-      setBookingConfirmation(apiPayload);
-      setLoading(false);
+    try {
+      const resp = await fetch(API_URL, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          // add auth headers if your API needs them, e.g. Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify(apiPayload),
+      });
+
+      if (!resp.ok) {
+        // try to parse error body
+        let errText = `${resp.status} ${resp.statusText}`;
+        try {
+          const errBody = await resp.json();
+          // adapt to your API's error structure
+          errText = errBody.message || JSON.stringify(errBody);
+        } catch (e) {}
+        throw new Error(errText);
+      }
+
+      // parse response (assume JSON)
+      const respJson = await resp.json();
+
+      // If API returns booking confirmation, use it. Otherwise create a fallback confirmation.
+      const confirmation = respJson.booking || respJson || {
+        booking_id:
+          respJson.bookingId ||
+          respJson.booking_id ||
+          `OYO${Math.floor(10000 + Math.random() * 90000)}`,
+        guest_name: apiPayload.guestName,
+        phone: apiPayload.phoneNumber,
+        check_in_date: apiPayload.checkIn,
+        check_out_date: apiPayload.checkOut,
+      };
+
+      setBookingConfirmation(confirmation);
       setStep("confirmation");
-    }, 1500);
+    } catch (err) {
+      console.error("Booking failed:", err);
+      setError(
+        typeof err === "string" ? err : err.message || "Booking failed"
+      );
+      alert("Booking failed: " + (err.message || err));
+    } finally {
+      setLoading(false);
+    }
   };
 
   const formatDate = (dateStr) => {
@@ -165,6 +210,9 @@ const OYOBookingDemo = () => {
         <div className="container py-5">
           <div className="card shadow-lg border-0 rounded-4 p-4">
             <h3 className="fw-bold mb-4">Complete Your Booking</h3>
+
+            {error && <div className="alert alert-danger">{error}</div>}
+
             <div className="mb-3">
               <label className="form-label">Full Name *</label>
               <input
@@ -190,7 +238,7 @@ const OYOBookingDemo = () => {
             </div>
 
             <div className="mb-3">
-              <label className="form-label">Email *</label>
+              <label className="form-label">Email</label>
               <input
                 type="email"
                 name="email"
@@ -247,8 +295,8 @@ const OYOBookingDemo = () => {
                 <strong>₹{hotel.price}</strong>
               </div>
               <div className="d-flex justify-content-between">
-                <span>Taxes (12%)</span>
-                <strong>₹{Math.round(hotel.price * 0.12)}</strong>
+                <span>Taxes (5%)</span>
+                <strong>₹{Math.round(hotel.price * 0.05)}</strong>
               </div>
               <hr />
               <div className="d-flex justify-content-between">
@@ -301,27 +349,30 @@ const OYOBookingDemo = () => {
 
             <div className="border rounded-3 bg-white p-3 mb-4 text-start">
               <div className="mb-2">
-                <strong>Booking ID:</strong> {bookingConfirmation.booking_id}
+                <strong>Booking ID:</strong>{" "}
+                {bookingConfirmation.booking_id || bookingConfirmation.bookingId || "—"}
               </div>
               <div className="mb-2">
-                <strong>Guest Name:</strong> {bookingConfirmation.guest_name}
+                <strong>Guest Name:</strong>{" "}
+                {bookingConfirmation.guest_name || bookingConfirmation.guestName}
               </div>
               <div className="mb-2">
-                <strong>Phone:</strong> {bookingConfirmation.phone}
+                <strong>Phone:</strong>{" "}
+                {bookingConfirmation.phone || bookingConfirmation.phoneNumber}
               </div>
               <div className="mb-2">
                 <strong>Check-In:</strong>{" "}
-                {formatDate(bookingConfirmation.check_in_date)}
+                {formatDate(bookingConfirmation.check_in_date || bookingConfirmation.checkIn)}
               </div>
               <div className="mb-2">
                 <strong>Check-Out:</strong>{" "}
-                {formatDate(bookingConfirmation.check_out_date)}
+                {formatDate(bookingConfirmation.check_out_date || bookingConfirmation.checkOut)}
               </div>
             </div>
 
             <div className="alert alert-info">
               📱 Self Check-In Link has been sent to{" "}
-              <strong>{bookingConfirmation.phone}</strong>.
+              <strong>{bookingConfirmation.phone || bookingConfirmation.phoneNumber}</strong>.
               <br />
               Please upload your ID at least 3 hours before check-in.
             </div>
